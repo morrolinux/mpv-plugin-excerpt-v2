@@ -20,6 +20,8 @@
 --      without this option, the extension ".mp4" will be used.
 --      Notice that unlike specified otherwise in "excerpt_copy",
 --      the filename extension will determine the format of the output.
+--   --script-opts=excerpt-no-pause-on-file-loaded=1
+--      to make excerpt.lua play files automatically.
 --
 -- (--script-opts can parse multiple options as comma-separated key-value pairs.)
 
@@ -104,68 +106,26 @@ function excerpt_mark_end_handler()
 end
 
 -- writing
+srcname = ""
+srcpath = ""
+srcext = ""
 
-function get_destination_filename()
-
-	local sbf = tonumber(mp.get_opt("excerpt-source-based-filename"))
-   if (sbf == nil) then
-		sbf = 0
-	end
-	
-	local sbe = tonumber(mp.get_opt("excerpt-source-based-extension"))
-   if sbe == nil then
-		sbe = 0
-	end
-	
-	local srcname   = mp.get_property_native("filename")
-	local srcnamene = mp.get_property_native("filename/no-ext")
-	
+function get_destination_filename()	
+	srcname   = mp.get_property_native("filename")
+	local srcnamene = mp.get_property_native("filename/no-ext")	
 	local ext_length = string.len(srcname) - string.len(srcnamene)
-	local srcext     = string.sub(srcname, -ext_length)
-	
-	local dstext = ".mp4"
-	if sbe == 1 then
-		-- use same filename extension than input
-		dstext = srcext
-	end
-	
-	local dstname
-
-	if sbf == 1 then
-		dstname = srcnamene .. ".excerpt_" .. excerpt_begin .. "-" .. excerpt_end
-	else
-		-- create a new, unique filename by scanning the current
-		-- directory for non-existence of files named "excerpt_$number.$extension"
-
-		local cwd = utils.getcwd()
-		local direntries = utils.readdir(cwd)
-		local ftable = {}
-		for i = 1, #direntries do
-			-- mp.msg.log("info", "direntries[" .. i .. "] = " .. direntries[i])
-			ftable[direntries[i]] = 1
-		end 
-		
-		local fname = ""
-		for i=0,999 do
-			local f = string.format("excerpt_%03d", i)
-			-- mp.msg.log("info", "ftable[" .. f .. dstext .. "] = " .. direntries[f .. dstext])
-			
-			if ftable[f .. dstext] == nil then
-				fname = f
-				break
-			end
- 		end
-		if fname == "" then
-			message = "not writing because all filenames already in use" 
-			mp.osd_message(message, 10)
-			return ""
-		end
-		dstname = fname
-	end
-	
-	return dstname .. dstext
+	srcext = string.sub(srcname, -ext_length)
+	local name_length = string.len(tostring(srcname))
+	srcpath = tostring(mp.get_property_native("path")) -- string.sub(tostring(mp.get_property_native("path")), name_length)
+	return tostring(srcpath .. ".excerpt_" .. excerpt_begin .. "-" .. excerpt_end)
 end
 
+encoding = false
+
+function excerpt_encoding_toggle_handler() 
+	encoding = not encoding
+	mp.osd_message("Encoding: " .. tostring(encoding), 3)
+end
 
 function excerpt_write_handler() 
 	if excerpt_begin == excerpt_end then
@@ -175,43 +135,61 @@ function excerpt_write_handler()
 	end
  	
 	dstname = get_destination_filename()
+
 	if (dstname == "") then
 		-- file name creation has failed
 		return
 	end
 	
 	duration = excerpt_end - excerpt_begin
-	
-	local srcname = mp.get_property_native("path")
-	
+
+
 	local message = excerpt_rangemessage()
-	message = message .. "writing excerpt of source file '" .. srcname .. "'\n"
-	message = message .. "to destination file '" .. dstname .. "'" 
+	message = message .. "writing to destination file '" .. dstname .. "'" 
 	mp.msg.log("info", message)
 	mp.osd_message(message, 10)
- 
-	local p = {}
-	p["cancellable"] = false
-	p["args"] = {}
-	p["args"][1] = "excerpt_copy"
-	p["args"][2] = tostring(excerpt_begin)
-	p["args"][3] = tostring(duration)
-	p["args"][4] = tostring(srcname)
-	p["args"][5] = tostring(dstname)
-	
-	local res = utils.subprocess(p)
+
+	local cmd = {}
+	cmd["cancellable"] = false
+	cmd["args"] = {}
+	table.insert(cmd["args"], "ffmpeg")
+	table.insert(cmd["args"], "-i")
+	table.insert(cmd["args"], tostring(srcpath))
+	table.insert(cmd["args"], "-ss")
+	table.insert(cmd["args"], tostring(excerpt_begin))
+	table.insert(cmd["args"], "-t")
+	table.insert(cmd["args"], tostring(duration))
+	if (encoding == true) then
+		table.insert(cmd["args"], "-c:v")
+		table.insert(cmd["args"], "libx264")
+		table.insert(cmd["args"], "-crf")
+		table.insert(cmd["args"], "23")
+		table.insert(cmd["args"], "-c:a")
+		table.insert(cmd["args"], "aac")
+		table.insert(cmd["args"], dstname .. ".mp4")
+	else
+		table.insert(cmd["args"], "-c:v")
+		table.insert(cmd["args"], "copy")
+		table.insert(cmd["args"], "-c:a")
+		table.insert(cmd["args"], "copy")
+		table.insert(cmd["args"], dstname .. srcext)
+	end
+
+
+	local res = utils.subprocess(cmd)
 	
 	if (res["status"] ~= 0) then
 		message = message .. "failed!\nfailed to run excerpt_copy - status = " .. res["status"]
 		if (res["error"] ~= nil) then
 			message = message .. ", error message: " .. res["error"]
 		end
-		message = message .. "\nstdout = " .. res["stdout"]
+		-- message = message .. "\nstdout = " .. res["stdout"]
+		-- message = message .. "\nstderr = " .. res["stderr"]
 		mp.msg.log("error", message)
 		mp.osd_message(message, 10)
 	else
 		mp.msg.log("info", "excerpt '" .. dstname .. "' written.")
-		message = message .. "... done."
+		message = message .. "\n DONE!"
 		mp.osd_message(message, 10)
 	end
  
@@ -461,7 +439,9 @@ end
 
 function excerpt_on_loaded()
 	-- pause play right after loading a file
-  	mp.set_property("pause","yes")
+	if mp.get_opt("excerpt-no-pause-on-file-loaded") ~= "1" then
+		mp.set_property("pause","yes")
+	end
 	
 	excerpt_zoom = 0.0
 	mp.set_property("video-zoom", excerpt_zoom)	
@@ -491,20 +471,21 @@ mp.add_key_binding("i", "excerpt_mark_begin", excerpt_mark_begin_handler)
 mp.add_key_binding("shift+i", "excerpt_seek_begin", excerpt_seek_begin_handler)
 mp.add_key_binding("o", "excerpt_mark_end", excerpt_mark_end_handler)
 mp.add_key_binding("shift+o", "excerpt_seek_end", excerpt_seek_end_handler)
+mp.add_key_binding("shift+E", "excerpt_encoding_toggle", excerpt_encoding_toggle_handler)
 mp.add_key_binding("x", "excerpt_write", excerpt_write_handler)
 
-mp.add_key_binding("shift+right", "excerpt_keyframe_forward", excerpt_keyframe_forward, { repeatable = true; complex = true })
-mp.add_key_binding("shift+left", "excerpt_keyframe_back", excerpt_keyframe_back, { repeatable = true; complex = true })
-mp.add_key_binding("right", "excerpt_frame_forward", excerpt_frame_forward, { repeatable = true; complex = true })
-mp.add_key_binding("left", "excerpt_frame_back", excerpt_frame_back, { repeatable = true; complex = true })
+mp.add_key_binding("shift+.", "excerpt_keyframe_forward", excerpt_keyframe_forward, { repeatable = true; complex = true })
+mp.add_key_binding("shift+,", "excerpt_keyframe_back", excerpt_keyframe_back, { repeatable = true; complex = true })
+mp.add_key_binding(".", "excerpt_frame_forward", excerpt_frame_forward, { repeatable = true; complex = true })
+mp.add_key_binding(",", "excerpt_frame_back", excerpt_frame_back, { repeatable = true; complex = true })
 
-mp.add_key_binding("e", "excerpt_zoom_in", excerpt_zoom_in, { repeatable = true; complex = false })
-mp.add_key_binding("w", "excerpt_zoom_out", excerpt_zoom_out, { repeatable = true; complex = false })
+mp.add_key_binding("alt++", "excerpt_zoom_in", excerpt_zoom_in, { repeatable = true; complex = false })
+mp.add_key_binding("alt+-", "excerpt_zoom_out", excerpt_zoom_out, { repeatable = true; complex = false })
 
-mp.add_key_binding("ctrl+right", "excerpt_pan_right", excerpt_pan_right, { repeatable = true; complex = false })
-mp.add_key_binding("ctrl+left", "excerpt_pan_leftt", excerpt_pan_left, { repeatable = true; complex = false })
-mp.add_key_binding("ctrl+up", "excerpt_pan_up", excerpt_pan_up, { repeatable = true; complex = false })
-mp.add_key_binding("ctrl+down", "excerpt_pan_down", excerpt_pan_down, { repeatable = true; complex = false })
+mp.add_key_binding("alt+right", "excerpt_pan_right", excerpt_pan_right, { repeatable = true; complex = false })
+mp.add_key_binding("alt+left", "excerpt_pan_leftt", excerpt_pan_left, { repeatable = true; complex = false })
+mp.add_key_binding("alt+up", "excerpt_pan_up", excerpt_pan_up, { repeatable = true; complex = false })
+mp.add_key_binding("alt+down", "excerpt_pan_down", excerpt_pan_down, { repeatable = true; complex = false })
 
 -- mp.add_key_binding("shift+mouse_btn3", "excerpt_test", excerpt_test, { repeatable = false; complex = true })
 -- mp.add_key_binding("shift+mouse_btn4", "excerpt_test", excerpt_test, { repeatable = false; complex = true })
