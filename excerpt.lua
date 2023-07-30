@@ -23,11 +23,6 @@ end
 mp.set_property("hr-seek-framedrop","no")
 mp.set_property("options/keep-open","always")
 
--- alas, the following setting seems to not take effect - needs
--- to be specified on the command line of mpv, instead:
--- mp.set_property("options/script-opts","osc-layout=bottombar,osc-hidetimeout=120000")
-
-
 function excerpt_on_eof()
 	-- pause upon reaching the end of the file
 	mp.msg.log("info", "playback reached end of file")
@@ -71,9 +66,16 @@ function excerpt_mark_begin_handler()
 	if excerpt_begin > excerpt_end then
 		excerpt_end = excerpt_begin
 	end
- 
-	excerpt_rangeinfo()
-end
+
+	local message = "IN point set."
+	mp.msg.log("info", message)
+	mp.osd_message(message, 5)
+
+	-- alas, the following setting seems to not take effect - needs
+	-- to be specified on the command line of mpv, instead:
+	mp.set_property("options/script-opts","osc-layout=bottombar,osc-hidetimeout=120000")
+
+ end
 
 function excerpt_mark_end_handler() 
 	pt = mp.get_property_native("playback-time")
@@ -93,13 +95,16 @@ function excerpt_mark_end_handler()
 		excerpt_begin = excerpt_end
 	end
 
-	excerpt_rangeinfo()
+	local message = "OUT point set."
+	mp.msg.log("info", message)
+	mp.osd_message(message, 5)
 end
 
 -- writing
 srcname = ""
 srcpath = ""
 srcext = ""
+encoding = false
 
 function get_destination_filename()	
 	srcname   = mp.get_property_native("filename")
@@ -110,8 +115,6 @@ function get_destination_filename()
 	srcpath = tostring(mp.get_property_native("path")) -- string.sub(tostring(mp.get_property_native("path")), name_length)
 	return tostring(srcpath .. ".excerpt_" .. excerpt_begin .. "-" .. excerpt_end)
 end
-
-encoding = false
 
 function excerpt_encoding_toggle_handler() 
 	encoding = not encoding
@@ -126,14 +129,12 @@ function excerpt_write_handler()
 	end
  	
 	dstname = get_destination_filename()
+	duration = excerpt_end - excerpt_begin
 
 	if (dstname == "") then
 		-- file name creation has failed
 		return
 	end
-	
-	duration = excerpt_end - excerpt_begin
-
 
 	local message = excerpt_rangemessage()
 	message = message .. "writing to destination file '" .. dstname .. "'" 
@@ -476,6 +477,3 @@ mp.add_key_binding("alt+down", "excerpt_pan_down", excerpt_pan_down, { repeatabl
 -- mp.add_key_binding("shift+mouse_btn3", "excerpt_test", excerpt_test, { repeatable = false; complex = true })
 -- mp.add_key_binding("shift+mouse_btn4", "excerpt_test", excerpt_test, { repeatable = false; complex = true })
 -- mp.add_key_binding("y", "excerpt_test", excerpt_test, { repeatable = false; complex = true })
-
-excerpt_rangeinfo()
-
