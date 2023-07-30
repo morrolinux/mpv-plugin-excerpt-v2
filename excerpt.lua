@@ -3,27 +3,12 @@
 -- press "o" to mark the end   of the range to excerpt,
 -- press "I" to continue playback at the "begin" location,
 -- press "O" to jump to the "end" location and pause there,
+-- press "E" to toggle between encoding (precise, negligible quality loss) and no-encoding (very fast, no quality loss),
 -- press "x" to actually start the creation of the excerpt,
 --  which will be done by starting an external executable
 --  named "excerpt_copy" with the parameters $1 = begin,
 --  $2 = duration, $3 = source file name
 -- (see bottom of this file for all key bindings)
-
--- script options: Use...
---
---   --script-opts=excerpt-source-based-filename=1
---      to make excerpt.lua use the source filename as
---      a base for the destination filename for excerpts
---   --script-opts=excerpt-source-based-extension=1
---      to make excerpt.lua use the same filname extension
---      for destination files than that of the source file -
---      without this option, the extension ".mp4" will be used.
---      Notice that unlike specified otherwise in "excerpt_copy",
---      the filename extension will determine the format of the output.
---   --script-opts=excerpt-no-pause-on-file-loaded=1
---      to make excerpt.lua play files automatically.
---
--- (--script-opts can parse multiple options as comma-separated key-value pairs.)
 
 -- initialization:
 
@@ -34,7 +19,6 @@ excerpt_end   = mp.get_property_native("length")
 if excerpt_end == nil or excerpt_end == "none" then
  excerpt_end = 0.0
 end
-
 
 mp.set_property("hr-seek-framedrop","no")
 mp.set_property("options/keep-open","always")
@@ -74,10 +58,14 @@ function excerpt_mark_begin_handler()
 	if pt == nil or pt == "none" then
 		pt = 0.0
 	end
- 	
-	-- at some later time, setting a/b markers might be used to visualize begin/end
-	-- mp.set_property("ab-loop-a", pt)
-	-- mp.set_property("loop", 999)
+
+    local all_chapters = mp.get_property_native("chapter-list")
+	table.remove(all_chapters,2)
+	all_chapters[1] = {
+		title = "in",
+		time = pt
+	}
+	mp.set_property_native("chapter-list", all_chapters)
  
 	excerpt_begin = pt
 	if excerpt_begin > excerpt_end then
@@ -93,10 +81,13 @@ function excerpt_mark_end_handler()
 		pt = 0.0
 	end
 
-	-- at some later time, setting a/b markers might be used to visualize begin/end
-	-- mp.set_property("ab-loop-b", pt)
-	-- mp.set_property("loop", 999)
-  
+    local all_chapters = mp.get_property_native("chapter-list")
+	all_chapters[2] = {
+		title = "out",
+		time = pt
+	}
+	mp.set_property_native("chapter-list", all_chapters)
+	
 	excerpt_end = pt
 	if excerpt_end < excerpt_begin then
 		excerpt_begin = excerpt_end
@@ -438,11 +429,6 @@ end
 -- things to do whenever a new file was loaded:
 
 function excerpt_on_loaded()
-	-- pause play right after loading a file
-	if mp.get_opt("excerpt-no-pause-on-file-loaded") ~= "1" then
-		mp.set_property("pause","yes")
-	end
-	
 	excerpt_zoom = 0.0
 	mp.set_property("video-zoom", excerpt_zoom)	
 
