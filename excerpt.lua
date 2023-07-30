@@ -30,21 +30,6 @@ mp.register_event("eof-reached", excerpt_on_eof)
 
 -- range marking
 
-function excerpt_rangemessage() 
-	local duration = excerpt_end - excerpt_begin
-	local message = ""
-	message = message .. "begin=" .. string.format("%4.3f", excerpt_begin) .. "s "
-	message = message .. "end=" .. string.format("%4.3f", excerpt_end) .. "s "
-	message = message .. "duration=" .. string.format("% 4.3f", duration) .. "s "
-	return message
-end
-
-function excerpt_rangeinfo() 
-	local message = excerpt_rangemessage()
-	mp.msg.log("info", message)
-	mp.osd_message(message, 5)
-end
-
 function excerpt_mark_begin_handler() 
 	pt = mp.get_property_native("playback-time")
 	if pt == nil or pt == "none" then
@@ -133,10 +118,10 @@ function excerpt_write_handler()
 		return
 	end
 
-	local message = excerpt_rangemessage()
-	message = message .. "writing to destination file '" .. dstname .. "'" 
+	local message = ""
+	message = message .. "writing to destination file '" .. dstname .. "'" .. "\nPlease wait..." 
 	mp.msg.log("info", message)
-	mp.osd_message(message, 10)
+	mp.osd_message(message, 60)
 
 	local cmd = {}
 	cmd["cancellable"] = false
