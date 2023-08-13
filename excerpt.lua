@@ -123,6 +123,8 @@ function excerpt_write_handler()
 	mp.msg.log("info", message)
 	mp.osd_message(message, 60)
 
+	local encoding_profile = {"-c:v", "libx264", "-crf", "23", "-c:a", "aac"}
+	local noencoding_profile = {"-c:v", "copy", "-c:a", "copy"}
 	local cmd = {}
 	cmd["cancellable"] = false
 	cmd["args"] = {}
@@ -134,18 +136,14 @@ function excerpt_write_handler()
 	table.insert(cmd["args"], "-t")
 	table.insert(cmd["args"], tostring(duration))
 	if (encoding == true) then
-		table.insert(cmd["args"], "-c:v")
-		table.insert(cmd["args"], "libx264")
-		table.insert(cmd["args"], "-crf")
-		table.insert(cmd["args"], "23")
-		table.insert(cmd["args"], "-c:a")
-		table.insert(cmd["args"], "aac")
+		for _, v in ipairs(encoding_profile) do
+			table.insert(cmd["args"], v)
+		end
 		table.insert(cmd["args"], dstname .. ".mp4")
 	else
-		table.insert(cmd["args"], "-c:v")
-		table.insert(cmd["args"], "copy")
-		table.insert(cmd["args"], "-c:a")
-		table.insert(cmd["args"], "copy")
+		for _, v in ipairs(noencoding_profile) do
+			table.insert(cmd["args"], v)
+		end
 		table.insert(cmd["args"], dstname .. srcext)
 	end
 
