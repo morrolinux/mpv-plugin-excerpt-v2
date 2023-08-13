@@ -87,6 +87,12 @@ srcname = ""
 srcpath = ""
 srcext = ""
 encoding = true
+local ffmpeg_profiles = {}
+ffmpeg_profiles["ACCURATE"] = {"-c:v", "libx264", "-crf", "23", "-c:a", "aac"}
+ffmpeg_profiles["FAST"] = {"-c:v", "copy", "-c:a", "copy"}
+ffmpeg_profiles["h264 MacOS GPU"] = {"-c:v", "h264_videotoolbox", "-b:v", "10000k", "-c:a", "aac"}
+export_profile_idx = 0
+export_profile_name = "ACCURATE"
 
 function get_destination_filename()	
 	srcname   = mp.get_property_native("filename")
@@ -99,8 +105,15 @@ function get_destination_filename()
 end
 
 function excerpt_encoding_toggle_handler() 
-	encoding = not encoding
-	mp.osd_message("Encoding: " .. tostring(encoding), 3)
+	local i = 0
+	for k, _ in pairs(ffmpeg_profiles) do
+		if i == export_profile_idx then
+			mp.osd_message("Encoding profile: " .. k, 3)
+			export_profile_name = k
+		end
+		i = i + 1
+	end
+	export_profile_idx = (export_profile_idx + 1) % i
 end
 
 function excerpt_write_handler() 
@@ -123,8 +136,6 @@ function excerpt_write_handler()
 	mp.msg.log("info", message)
 	mp.osd_message(message, 60)
 
-	local encoding_profile = {"-c:v", "libx264", "-crf", "23", "-c:a", "aac"}
-	local noencoding_profile = {"-c:v", "copy", "-c:a", "copy"}
 	local cmd = {}
 	cmd["cancellable"] = false
 	cmd["args"] = {}
@@ -135,16 +146,15 @@ function excerpt_write_handler()
 	table.insert(cmd["args"], tostring(excerpt_begin))
 	table.insert(cmd["args"], "-t")
 	table.insert(cmd["args"], tostring(duration))
-	if (encoding == true) then
-		for _, v in ipairs(encoding_profile) do
-			table.insert(cmd["args"], v)
-		end
-		table.insert(cmd["args"], dstname .. ".mp4")
-	else
-		for _, v in ipairs(noencoding_profile) do
-			table.insert(cmd["args"], v)
-		end
+
+	for _, v in ipairs(ffmpeg_profiles[export_profile_name]) do
+		table.insert(cmd["args"], v)
+	end
+
+	if (export_profile_name == "FAST") then
 		table.insert(cmd["args"], dstname .. srcext)
+	else
+		table.insert(cmd["args"], dstname .. ".mp4")
 	end
 
 	local res = utils.subprocess(cmd)
