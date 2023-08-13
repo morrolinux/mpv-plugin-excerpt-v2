@@ -86,7 +86,7 @@ end
 srcname = ""
 srcpath = ""
 srcext = ""
-encoding = false
+encoding = true
 
 function get_destination_filename()	
 	srcname   = mp.get_property_native("filename")
