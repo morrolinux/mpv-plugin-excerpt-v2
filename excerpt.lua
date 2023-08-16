@@ -204,7 +204,7 @@ function os.capture(cmd, raw)
 end
 
 function excerpt_on_loaded()
-	mp.osd_message("excerpt: use i and o to set IN and OUT points.", 5)
+	mp.osd_message("excerpt: use i and o to set IN and OUT points.", 3)
 
 	local operating_system = string.lower(os.capture("uname"))
 	installed_gpus = string.lower(os.capture("lspci -k | grep -E 'VGA|3D|Display'"))
