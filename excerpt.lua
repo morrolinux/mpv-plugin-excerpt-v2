@@ -90,11 +90,6 @@ encoding = true
 ffmpeg_profiles = {}
 export_profile_idx = 1
 
--- ADD YOUR EXPORT PROFILES HERE 
-table.insert(ffmpeg_profiles, {"ACCURATE", "-c:v", "libx264", "-crf", "23", "-c:a", "aac", ".mp4"})
-table.insert(ffmpeg_profiles, {"FAST", "-c:v", "copy", "-c:a", "copy", "."})
-table.insert(ffmpeg_profiles, {"h264 MacOS GPU", "-c:v", "h264_videotoolbox", "-b:v", "10000k", "-c:a", "aac", ".mp4"})
-
 function get_destination_filename()	
 	srcname   = mp.get_property_native("filename")
 	local srcnamene = mp.get_property_native("filename/no-ext")	
@@ -177,8 +172,35 @@ end
 
 -- things to do whenever a new file was loaded:
 
+function os.capture(cmd, raw)
+	local f = assert(io.popen(cmd, 'r'))
+	local s = assert(f:read('*a'))
+	f:close()
+	if raw then return s end
+	s = string.gsub(s, '^%s+', '')
+	s = string.gsub(s, '%s+$', '')
+	s = string.gsub(s, '[\n\r]+', ' ')
+	return s
+end
+
 function excerpt_on_loaded()
-	mp.msg.log("info", "excerpt: use i and o to set IN and OUT points.")
+	mp.osd_message("excerpt: use i and o to set IN and OUT points.")
+
+	local operating_system = string.lower(os.capture("uname"))
+	mp.osd_message(operating_system, 10)
+
+	-- Set GPU profiles
+	if operating_system == "darwin" then
+		table.insert(ffmpeg_profiles, {"ACCURATE MacOS GPU", "-c:v", "h264_videotoolbox", "-b:v", "10000k", "-c:a", "aac", ".mp4"})
+	else 
+		table.insert(ffmpeg_profiles, {"ACCURATE NVIDIA GPU", "-c:v", "TODO", "-b:v", "10000k", "-c:a", "aac", ".mp4"})
+		table.insert(ffmpeg_profiles, {"ACCURATE INTEL-AMD GPU", "-c:v", "TODO", "-b:v", "10000k", "-c:a", "aac", ".mp4"})
+	end 
+
+	-- ADD YOUR EXPORT PROFILES HERE 
+	table.insert(ffmpeg_profiles, {"ACCURATE (CPU)", "-c:v", "libx264", "-crf", "23", "-c:a", "aac", ".mp4"})
+	table.insert(ffmpeg_profiles, {"FAST", "-c:v", "copy", "-c:a", "copy", "."})
+
 end
 
 mp.register_event("file-loaded", excerpt_on_loaded)
