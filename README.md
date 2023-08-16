@@ -7,3 +7,14 @@ A new file with the same name prefix as the original will be generated in the sa
 NB: This plugin suports two modes: ACCURATE (encoding) and FAST (noencoding) cut. The FAST option is the default and will export your video segment in the blink of an eye. HOWEVER, it might not be as accurate of a cut as you wish. If you're aiming for frame-accurate cut, **toggle to the ACCURATE mode with E.**
 
 This fork of the [original project](https://github.com/lvml/mpv-plugin-excerpt) aims to provide a cleaner and bloat-free expirience. 
+
+## Base requirements
+
+- `ffmpeg` (mandatory)
+
+
+## Requiraments for HW encoding using the GPU
+
+- `pciutils` (needed for auto-selection of GPU encoder)
+- `cuda` if you're using an NVIDIA GPU or
+- `intel-vaapi-driver`, `intel-media-driver` or any other appropriate package depending on your model, if you're using an INTEL GPU. See [this page](https://wiki.archlinux.org/title/Hardware_video_acceleration) for more info.
