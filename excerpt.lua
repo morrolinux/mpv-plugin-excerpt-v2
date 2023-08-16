@@ -87,12 +87,13 @@ srcname = ""
 srcpath = ""
 srcext = ""
 encoding = true
-local ffmpeg_profiles = {}
-ffmpeg_profiles["ACCURATE"] = {"-c:v", "libx264", "-crf", "23", "-c:a", "aac"}
-ffmpeg_profiles["FAST"] = {"-c:v", "copy", "-c:a", "copy"}
-ffmpeg_profiles["h264 MacOS GPU"] = {"-c:v", "h264_videotoolbox", "-b:v", "10000k", "-c:a", "aac"}
-export_profile_idx = 0
-export_profile_name = "ACCURATE"
+ffmpeg_profiles = {}
+export_profile_idx = 1
+
+-- ADD YOUR EXPORT PROFILES HERE 
+table.insert(ffmpeg_profiles, {"ACCURATE", "-c:v", "libx264", "-crf", "23", "-c:a", "aac"})
+table.insert(ffmpeg_profiles, {"FAST", "-c:v", "copy", "-c:a", "copy"})
+table.insert(ffmpeg_profiles, {"h264 MacOS GPU", "-c:v", "h264_videotoolbox", "-b:v", "10000k", "-c:a", "aac"})
 
 function get_destination_filename()	
 	srcname   = mp.get_property_native("filename")
@@ -105,15 +106,8 @@ function get_destination_filename()
 end
 
 function excerpt_encoding_toggle_handler() 
-	local i = 0
-	for k, _ in pairs(ffmpeg_profiles) do
-		if i == export_profile_idx then
-			mp.osd_message("Encoding profile: " .. k, 3)
-			export_profile_name = k
-		end
-		i = i + 1
-	end
-	export_profile_idx = (export_profile_idx + 1) % i
+	export_profile_idx = ((export_profile_idx + 1) % #ffmpeg_profiles) + 1
+	mp.osd_message("Export profile: " .. ffmpeg_profiles[export_profile_idx][1], 3)
 end
 
 function excerpt_write_handler() 
@@ -147,11 +141,15 @@ function excerpt_write_handler()
 	table.insert(cmd["args"], "-t")
 	table.insert(cmd["args"], tostring(duration))
 
-	for _, v in ipairs(ffmpeg_profiles[export_profile_name]) do
-		table.insert(cmd["args"], v)
+	for k, v in ipairs(ffmpeg_profiles[export_profile_idx]) do
+		if k == 1 then
+			-- mp.osd_message("Exporting with profile: " .. v, 1)
+		else
+			table.insert(cmd["args"], v)
+		end
 	end
 
-	if (export_profile_name == "FAST") then
+	if (ffmpeg_profiles[export_profile_idx][1] == "FAST") then
 		table.insert(cmd["args"], dstname .. srcext)
 	else
 		table.insert(cmd["args"], dstname .. ".mp4")
@@ -160,12 +158,10 @@ function excerpt_write_handler()
 	local res = utils.subprocess(cmd)
 	
 	if (res["status"] ~= 0) then
-		message = message .. "failed!\nfailed to run excerpt_copy - status = " .. res["status"]
+		message = message .. "failed!\nfailed to run excerpt - status = " .. res["status"]
 		if (res["error"] ~= nil) then
 			message = message .. ", error message: " .. res["error"]
 		end
-		-- message = message .. "\nstdout = " .. res["stdout"]
-		-- message = message .. "\nstderr = " .. res["stderr"]
 		mp.msg.log("error", message)
 		mp.osd_message(message, 10)
 	else
