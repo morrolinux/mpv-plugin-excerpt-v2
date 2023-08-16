@@ -13,7 +13,7 @@ This fork of the [original project](https://github.com/lvml/mpv-plugin-excerpt) 
 - `ffmpeg` (mandatory)
 
 
-## Requiraments for HW encoding using the GPU
+## Requirements for HW encoding using the GPU
 
 - `pciutils` (needed for auto-selection of GPU encoder)
 - `cuda` if you're using an NVIDIA GPU or
