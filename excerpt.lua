@@ -106,7 +106,7 @@ function get_destination_filename()
 end
 
 function excerpt_encoding_toggle_handler() 
-	export_profile_idx = ((export_profile_idx + 1) % #ffmpeg_profiles) + 1
+	export_profile_idx = (export_profile_idx % #ffmpeg_profiles) + 1
 	mp.osd_message("Export profile: " .. ffmpeg_profiles[export_profile_idx][1], 3)
 end
 
