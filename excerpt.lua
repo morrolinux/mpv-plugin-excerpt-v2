@@ -91,9 +91,9 @@ ffmpeg_profiles = {}
 export_profile_idx = 1
 
 -- ADD YOUR EXPORT PROFILES HERE 
-table.insert(ffmpeg_profiles, {"ACCURATE", "-c:v", "libx264", "-crf", "23", "-c:a", "aac"})
-table.insert(ffmpeg_profiles, {"FAST", "-c:v", "copy", "-c:a", "copy"})
-table.insert(ffmpeg_profiles, {"h264 MacOS GPU", "-c:v", "h264_videotoolbox", "-b:v", "10000k", "-c:a", "aac"})
+table.insert(ffmpeg_profiles, {"ACCURATE", "-c:v", "libx264", "-crf", "23", "-c:a", "aac", ".mp4"})
+table.insert(ffmpeg_profiles, {"FAST", "-c:v", "copy", "-c:a", "copy", "."})
+table.insert(ffmpeg_profiles, {"h264 MacOS GPU", "-c:v", "h264_videotoolbox", "-b:v", "10000k", "-c:a", "aac", ".mp4"})
 
 function get_destination_filename()	
 	srcname   = mp.get_property_native("filename")
@@ -149,11 +149,14 @@ function excerpt_write_handler()
 		end
 	end
 
-	if (ffmpeg_profiles[export_profile_idx][1] == "FAST") then
-		table.insert(cmd["args"], dstname .. srcext)
+	-- preserve original extension if user specified "." or apply user provided extension.
+	local dstext_idx = #ffmpeg_profiles[export_profile_idx]
+	local dstext = ffmpeg_profiles[export_profile_idx][dstext_idx]
+	if dstext == "." then
+		cmd["args"][#cmd["args"]] = dstname .. srcext
 	else
-		table.insert(cmd["args"], dstname .. ".mp4")
-	end
+		cmd["args"][#cmd["args"]] = dstname .. dstext
+	end 
 
 	local res = utils.subprocess(cmd)
 	
