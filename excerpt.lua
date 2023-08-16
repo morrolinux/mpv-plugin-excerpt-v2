@@ -86,6 +86,7 @@ end
 srcname = ""
 srcpath = ""
 srcext = ""
+installed_gpus = ""
 encoding = true
 ffmpeg_profiles = {}
 export_profile_idx = 1
@@ -128,7 +129,25 @@ function excerpt_write_handler()
 	local cmd = {}
 	cmd["cancellable"] = false
 	cmd["args"] = {}
+
 	table.insert(cmd["args"], "ffmpeg")
+
+	-- enable HW acceleration if supported
+	if string.find(installed_gpus, "nvidia")  then
+		table.insert(cmd["args"], "-hwaccel") 
+		table.insert(cmd["args"], "cuda")
+		table.insert(cmd["args"], "-hwaccel_output_format")
+		table.insert(cmd["args"], "cuda")
+	elseif string.find(installed_gpus, "intel") then
+		table.insert(cmd["args"], "-hwaccel") 
+		table.insert(cmd["args"], "vaapi")
+		table.insert(cmd["args"], "-hwaccel_output_format") 
+		table.insert(cmd["args"], "vaapi")
+		table.insert(cmd["args"], "-vaapi_device") 
+		table.insert(cmd["args"], "/dev/dri/renderD128") 
+	end
+
+	-- set input file and cut options
 	table.insert(cmd["args"], "-i")
 	table.insert(cmd["args"], tostring(srcpath))
 	table.insert(cmd["args"], "-ss")
@@ -136,6 +155,7 @@ function excerpt_write_handler()
 	table.insert(cmd["args"], "-t")
 	table.insert(cmd["args"], tostring(duration))
 
+	-- set encoding parameters
 	for k, v in ipairs(ffmpeg_profiles[export_profile_idx]) do
 		if k == 1 then
 			-- mp.osd_message("Exporting with profile: " .. v, 1)
@@ -184,17 +204,20 @@ function os.capture(cmd, raw)
 end
 
 function excerpt_on_loaded()
-	mp.osd_message("excerpt: use i and o to set IN and OUT points.")
+	mp.osd_message("excerpt: use i and o to set IN and OUT points.", 5)
 
 	local operating_system = string.lower(os.capture("uname"))
-	mp.osd_message(operating_system, 10)
+	installed_gpus = string.lower(os.capture("lspci -k | grep -E 'VGA|3D|Display'"))
 
 	-- Set GPU profiles
 	if operating_system == "darwin" then
-		table.insert(ffmpeg_profiles, {"ACCURATE MacOS GPU", "-c:v", "h264_videotoolbox", "-b:v", "10000k", "-c:a", "aac", ".mp4"})
+		table.insert(ffmpeg_profiles, {"ACCURATE (MacOS GPU)", "-c:v", "h264_videotoolbox", "-b:v", "10000k", "-c:a", "aac", ".mp4"})
 	else 
-		table.insert(ffmpeg_profiles, {"ACCURATE NVIDIA GPU", "-c:v", "TODO", "-b:v", "10000k", "-c:a", "aac", ".mp4"})
-		table.insert(ffmpeg_profiles, {"ACCURATE INTEL-AMD GPU", "-c:v", "TODO", "-b:v", "10000k", "-c:a", "aac", ".mp4"})
+		if string.find(installed_gpus, "nvidia")  then
+			table.insert(ffmpeg_profiles, {"ACCURATE (NVIDIA GPU)", "-c:v", "h264_nvenc", "-preset", "medium", "-c:a", "aac", ".mp4"})
+		elseif string.find(installed_gpus, "intel")  then
+			table.insert(ffmpeg_profiles, {"ACCURATE (INTEL GPU)", "-vf", "'format=nv12,hwupload'", "-c:v", "h264_vaapi", "-qp", "25", "-c:a", "aac", ".mp4"})
+		end
 	end 
 
 	-- ADD YOUR EXPORT PROFILES HERE 
