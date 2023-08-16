@@ -4,7 +4,7 @@ This MPV plugin allows you to extract a portion of the video you're watching jus
 
 A new file with the same name prefix as the original will be generated in the same directory.
 
-NB: This plugin suports two modes: ACCURATE (encoding) and FAST (noencoding) cut. The FAST option is the default and will export your video segment in the blink of an eye. HOWEVER, it might not be as accurate of a cut as you wish. If you're aiming for frame-accurate cut, **toggle to the ACCURATE mode with E.**
+NB: This plugin suports multiple encoding profiles: ACCURATE (CPU encoding), ACCURATE (GPU encoding) and FAST (only muxing, no encoding). The FAST option will export your video segment in the blink of an eye. HOWEVER, it might not be as accurate of a cut as you wish. If you're aiming for frame-accurate cut, **make sure to use the ACCURATE modes with E.**
 
 This fork of the [original project](https://github.com/lvml/mpv-plugin-excerpt) aims to provide a cleaner and bloat-free expirience. 
 
