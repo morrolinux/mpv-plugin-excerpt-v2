@@ -37,7 +37,7 @@ function excerpt_mark_begin_handler()
 	end
 
     local all_chapters = mp.get_property_native("chapter-list")
-	table.remove(all_chapters,2)
+	-- table.remove(all_chapters,2) -- TODO find an elegant way to do this without breaking on different lua versions
 	all_chapters[1] = {
 		title = "in",
 		time = pt
@@ -214,7 +214,7 @@ function excerpt_on_loaded()
 		table.insert(ffmpeg_profiles, {"ACCURATE (MacOS GPU)", "-c:v", "h264_videotoolbox", "-b:v", "10000k", "-c:a", "aac", ".mp4"})
 	else 
 		if string.find(installed_gpus, "nvidia")  then
-			table.insert(ffmpeg_profiles, {"ACCURATE (NVIDIA GPU)", "-c:v", "h264_nvenc", "-preset", "medium", "-c:a", "aac", ".mp4"})
+			table.insert(ffmpeg_profiles, {"ACCURATE (NVIDIA GPU)", "-c:v", "h264_nvenc", "-preset", "slow", "-c:a", "aac", ".mp4"})
 		elseif string.find(installed_gpus, "intel")  then
 			table.insert(ffmpeg_profiles, {"ACCURATE (INTEL GPU)", "-vf", "'format=nv12,hwupload'", "-c:v", "h264_vaapi", "-qp", "25", "-c:a", "aac", ".mp4"})
 		end
