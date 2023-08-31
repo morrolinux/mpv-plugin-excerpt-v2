@@ -132,19 +132,22 @@ function excerpt_write_handler()
 
 	table.insert(cmd["args"], "ffmpeg")
 
-	-- enable HW acceleration if supported
-	if string.find(installed_gpus, "nvidia")  then
-		table.insert(cmd["args"], "-hwaccel") 
-		table.insert(cmd["args"], "cuda")
-		table.insert(cmd["args"], "-hwaccel_output_format")
-		table.insert(cmd["args"], "cuda")
-	elseif string.find(installed_gpus, "intel") then
-		table.insert(cmd["args"], "-hwaccel") 
-		table.insert(cmd["args"], "vaapi")
-		table.insert(cmd["args"], "-hwaccel_output_format") 
-		table.insert(cmd["args"], "vaapi")
-		table.insert(cmd["args"], "-vaapi_device") 
-		table.insert(cmd["args"], "/dev/dri/renderD128") 
+	-- try to enable HW acceleration if user selected a GPU profile
+	if string.find(ffmpeg_profiles[export_profile_idx][1], "GPU") then
+		-- enable HW acceleration only if supported
+		if string.find(installed_gpus, "nvidia")  then
+			table.insert(cmd["args"], "-hwaccel") 
+			table.insert(cmd["args"], "cuda")
+			table.insert(cmd["args"], "-hwaccel_output_format")
+			table.insert(cmd["args"], "cuda")
+		elseif string.find(installed_gpus, "intel") then
+			table.insert(cmd["args"], "-hwaccel") 
+			table.insert(cmd["args"], "vaapi")
+			table.insert(cmd["args"], "-hwaccel_output_format") 
+			table.insert(cmd["args"], "vaapi")
+			table.insert(cmd["args"], "-vaapi_device") 
+			table.insert(cmd["args"], "/dev/dri/renderD128") 
+		end
 	end
 
 	-- set input file and cut options
