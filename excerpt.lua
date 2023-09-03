@@ -42,17 +42,17 @@ function excerpt_check_intel_board( installed_gpus_string )
 		mp.msg.log("info", "No Intel board")
 		return false
 	end
-	if 	string.find(installed_gpus_string, "X4500") or
-		string.find(installed_gpus_string, "X2000") or
-		string.find(installed_gpus_string, "X2500") or
-		string.find(installed_gpus_string, "X3000") or
-		string.find(installed_gpus_string, "X4000") or
-		string.find(installed_gpus_string, "X4200") or
-		string.find(installed_gpus_string, "X4400") or
-		string.find(installed_gpus_string, "X4600") or
-		string.find(installed_gpus_string, "X5000") or
-		string.find(installed_gpus_string, "X5100") or
-		string.find(installed_gpus_string, "X5200") then
+	if 	string.find(installed_gpus_string, "x4500") or
+		string.find(installed_gpus_string, "x2000") or
+		string.find(installed_gpus_string, "x2500") or
+		string.find(installed_gpus_string, "x3000") or
+		string.find(installed_gpus_string, "x4000") or
+		string.find(installed_gpus_string, "x4200") or
+		string.find(installed_gpus_string, "x4400") or
+		string.find(installed_gpus_string, "x4600") or
+		string.find(installed_gpus_string, "x5000") or
+		string.find(installed_gpus_string, "x5100") or
+		string.find(installed_gpus_string, "x5200") then
 		mp.msg.log("info", "Intel board vaapi capable")
 		return true
 	end
