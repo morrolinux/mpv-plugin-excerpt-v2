@@ -6,7 +6,14 @@
 -- press "x" to actually start the creation of the excerpt,
 --  which will be done by starting an external executable (ffmpeg)
 -- (see bottom of this file for all key bindings)
-
+--
+-- homezappa
+-- Intel graphics cards vaapi compatible as in https://www.intel.com/content/www/us/en/developer/articles/technical/linuxmedia-vaapi.html
+-- GMA X4500HD.
+-- Intel® HD Graphics (in Intel® 2010 Core™ i7/i5/i3 processor family).   Can't check .. too old board?
+-- Intel® HD Graphics 2000/3000 (in 2nd Generation Intel® Core™ i7/i5/i3 Processor family).
+-- Intel® HD Graphics 2500/4000 (in 3nd Generation Intel® Core™ i7/i5/i3 Processor family).
+-- Intel® HD Graphics 4200/4400/4600/5000, Intel® Iris™ Graphics 5100, and Intel® Iris™ Pro Graphics 5200 (in 4nd Generation Intel®
 -- initialization:
 
 utils = require 'mp.utils'
@@ -28,6 +35,29 @@ function excerpt_on_eof()
 end
 mp.register_event("eof-reached", excerpt_on_eof)
 
+-- check if intel board is vaapi compatible
+
+function excerpt_check_intel_board( installed_gpus_string ) 
+	if not string.find(installed_gpus_string, "intel") then
+		mp.msg.log("info", "No Intel board")
+		return false
+	end
+	if 	string.find(installed_gpus_string, "x4500") or
+		string.find(installed_gpus_string, "x2000") or
+		string.find(installed_gpus_string, "x2500") or
+		string.find(installed_gpus_string, "x3000") or
+		string.find(installed_gpus_string, "x4000") or
+		string.find(installed_gpus_string, "x4200") or
+		string.find(installed_gpus_string, "x4400") or
+		string.find(installed_gpus_string, "x4600") or
+		string.find(installed_gpus_string, "x5000") or
+		string.find(installed_gpus_string, "x5100") or
+		string.find(installed_gpus_string, "x5200") then
+		mp.msg.log("info", "Intel board vaapi capable")
+		return true
+	end
+	return false
+end
 -- range marking
 
 function excerpt_mark_begin_handler() 
@@ -140,7 +170,7 @@ function excerpt_write_handler()
 			table.insert(cmd["args"], "cuda")
 			table.insert(cmd["args"], "-hwaccel_output_format")
 			table.insert(cmd["args"], "cuda")
-		elseif string.find(installed_gpus, "intel") then
+		elseif excerpt_check_intel_board(installed_gpus) then
 			table.insert(cmd["args"], "-hwaccel") 
 			table.insert(cmd["args"], "vaapi")
 			table.insert(cmd["args"], "-hwaccel_output_format") 
@@ -218,7 +248,7 @@ function excerpt_on_loaded()
 	else 
 		if string.find(installed_gpus, "nvidia")  then
 			table.insert(ffmpeg_profiles, {"ACCURATE (NVIDIA GPU)", "-c:v", "h264_nvenc", "-preset", "slow", "-c:a", "aac", ".mp4"})
-		elseif string.find(installed_gpus, "intel")  then
+		elseif excerpt_check_intel_board(installed_gpus)  then
 			table.insert(ffmpeg_profiles, {"ACCURATE (INTEL GPU)", "-vf", "'format=nv12,hwupload'", "-c:v", "h264_vaapi", "-qp", "25", "-c:a", "aac", ".mp4"})
 		end
 	end 
