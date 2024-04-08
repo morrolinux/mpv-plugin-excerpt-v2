@@ -131,6 +131,15 @@ function get_destination_filename()
 	return tostring(srcpath .. ".excerpt_" .. excerpt_begin .. "-" .. excerpt_end)
 end
 
+function get_name_with_index(name, index)
+	return tostring(name .. " (" .. index .. ")")
+end
+
+function file_exists(name)
+	local f = io.open(name, "r")
+	return f ~= nil and io.close(f)
+end
+
 function excerpt_encoding_toggle_handler() 
 	export_profile_idx = (export_profile_idx % #ffmpeg_profiles) + 1
 	mp.osd_message("Export profile: " .. ffmpeg_profiles[export_profile_idx][1], 3)
@@ -144,6 +153,19 @@ function excerpt_write_handler()
 	end
  	
 	dstname = get_destination_filename()
+	
+	local testing_dstname = dstname
+	local dstext_idx = #ffmpeg_profiles[export_profile_idx]
+	local dstext = ffmpeg_profiles[export_profile_idx][dstext_idx]
+	local dstname_ffmpeg_ext = dstext == "." and srcext or dstext
+	local index = 0
+	while file_exists(testing_dstname .. dstname_ffmpeg_ext) do
+		testing_dstname = get_name_with_index(dstname, index)
+		index = index + 1
+		mp.osd_message(testing_dstname .. dstname_ffmpeg_ext .. index, 3)
+	end
+	dstname = testing_dstname
+
 	duration = excerpt_end - excerpt_begin
 
 	if (dstname == "") then
